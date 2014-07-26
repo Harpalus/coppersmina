@@ -23,7 +23,7 @@
  * - Allow the execution of the script even if the site is not detected as a Copperime gallery
  */
 
-(function(){
+(function() {
     // START OF USER SETTINGS
     //
     // Image info to display under the thumbnail
@@ -58,6 +58,15 @@
     //
     // END OF USER SETTINGS
 
+    function enableRunAlways() {
+        GM_setValue("runAlways", true);
+        GM_setValue("timeRunAlwaysEnabled", Date.now() );
+    }
+
+    function disableRunAlways() {
+        GM_setValue("runAlways", false);
+    }
+
     function checkRunAlways() {
         //Load saved config from disk
         var isRunAlways = GM_getValue("runAlways");
@@ -71,8 +80,7 @@
             //If runAlways is enabled by more than 24 hours disable automatically
             //because it's probably been forgotten enabled
             var timeEnabled = GM_getValue("timeRunAlwaysEnabled");
-            //var timeNow = Date.now();
-            var timeNow = new Date(2014, 06, 27);
+            var timeNow = new Date(2014, 6, 27);
             //elapsed in ms
             var elapsed = timeNow - timeEnabled;
             elapsed = elapsed / (1000 * 60 * 60);
@@ -84,24 +92,14 @@
         return isRunAlways;
     }
 
-    function enableRunAlways() {
-        GM_setValue("runAlways", true);
-        GM_setValue("timeRunAlwaysEnabled", Date.now() );
-    }
-
-    function disableRunAlways() {
-        GM_setValue("runAlways", false);
-    }
-
     function runCoppersmina() {
         //find all the anchors around the the thumbnails and iterate
         var anchors = document.querySelectorAll('a[href*=displayimage]');
-        //console.log("anchors found: " + anchors.length);
-        if(anchors.length == 0) return;
+        if(anchors.length === 0) { return; }
         for(var i = 0; i < anchors.length; i++) {
             var anchor = anchors[i];
             var thumbnail = anchor.querySelector('img');
-            if(thumbnail == null) continue;
+            if(thumbnail === null) { continue; }
             //find the text field under the thumbnail
             var caption = anchor.parentNode.querySelector("span");
             //add the old link to the caption
@@ -114,12 +112,13 @@
             var hdUrl = thumbnail.src.replace(/thumb_/, "");
             anchors[i].href = hdUrl;
             //Copy image information from title attribute and append to caption
+            var regex, found;
             for(var j = 0; j < imageInfo.length; j++) {
-                var r = new RegExp(imageInfo[j] + '=(.*)');
-                var s = r.exec(thumbnail.title);
-                if(s !== null) {
+                regex = new RegExp(imageInfo[j] + '=(.*)');
+                found = regex.exec(thumbnail.title);
+                if(found !== null) {
                     var extraInfo = document.createElement('span');
-                    extraInfo.innerHTML = s[1];
+                    extraInfo.innerHTML = found[1];
                     caption.appendChild(document.createElement('br'));
                     caption.appendChild(extraInfo);
                 }
@@ -128,21 +127,21 @@
             if(colorBorder) {
                 //Calculate image weight to chose a border color
                 var imageWeight;
-                var r = new RegExp(colorByWhat + '=(.*)');
-                var s = r.exec(thumbnail.title);
+                regex = new RegExp(colorByWhat + '=(.*)');
+                found = regex.exec(thumbnail.title);
                 if(colorByWhat == "Dimensions") {
-                    var sizes = s[1].split('x');
+                    var sizes = found[1].split('x');
                     var area = sizes[0] * sizes[1];
                     //Divide to have comparable sizes with "FileSize" wich is expressed in KB
                     imageWeight = area / 8192;
                 } else {
                     //Remove last 3 characters occupied by "KiB"
-                    imageWeight = s[1].slice(0, -3);
+                    imageWeight = found[1].slice(0, -3);
                 }
 
                 //Add the colored border to the thumbnail
                 var newColor;
-                for(var j = 0; j < colorCode.length; j++) {
+                for(j = 0; j < colorCode.length; j++) {
                     if(imageWeight > colorCode[j].size) {
                         newColor = colorCode[j].color;
                     }
@@ -163,7 +162,6 @@
     }
     // Detect if it's a coppermine gallery
     if(isRunAlways || document.querySelector('a[href*=coppermine]') !== null) {
-        //console.log("Coppersmining...");
         runCoppersmina();
     }
-})();
+}());
