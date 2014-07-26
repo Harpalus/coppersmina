@@ -3,7 +3,7 @@
 // @namespace   github.com/ariacorrente/coppersmina
 // @description Enhances Coppermine galleries with direct links, color coded border and other tricks. See source code for more info and settings.
 // @version     0.3
-// @downloadURL https://github.com/ariacorrente/coppersmina/raw/master/coppersmina.user.js
+// @downloadURL https://raw.githubusercontent.com/ariacorrente/coppersmina/master/coppersmina.user.js
 // @match       http://*/*
 // @grant       GM_registerMenuCommand
 // @grant       GM_setValue
