@@ -14,12 +14,12 @@
  * First the script will check if into the page there is a link containing "coppermine", this
  * indicate the site is a Coppermine gallery. Only after this check the rest of the script
  * will be executed.
- * 
+ *
  * Features:
  * - Replace links in thumbnails to point directly to the high defintion image
  * - Add a colored border indicating the size of the image
  * - Add image info to the thumbnail caption and optionally remove the tooltip
- * - Allow the execution of the script even if the site is not detected as a Copperime gallery 
+ * - Allow the execution of the script even if the site is not detected as a Copperime gallery
  */
 
 (function(){
@@ -56,7 +56,7 @@
     var autoDisableRunAlways = true;
     //
     // END OF USER SETTINGS
-       
+
     function checkRunAlways() {
         //Load saved config from disk
         var isRunAlways = GM_getValue("runAlways");
@@ -65,7 +65,7 @@
         } else {
             GM_registerMenuCommand("Force Coppersmina in current site", enableRunAlways, 'C');
         }
-        
+
         if(autoDisableRunAlways) {
             //If runAlways is enabled by more than 24 hours disable automatically
             //because it's probably been forgotten enabled
@@ -79,24 +79,24 @@
                 disableRunAlways();
             }
         }
-        
+
         return isRunAlways;
     }
-               
+
     function enableRunAlways() {
         GM_setValue("runAlways", true);
-        GM_setValue("timeRunAlwaysEnabled", Date.now() );    
+        GM_setValue("timeRunAlwaysEnabled", Date.now() );
     }
-    
+
     function disableRunAlways() {
-        GM_setValue("runAlways", false);            
+        GM_setValue("runAlways", false);
     }
-   
+
     function runCoppersmina() {
         //find all the anchors around the the thumbnails and iterate
-        var anchors = document.querySelectorAll('a[href*=displayimage]')
+        var anchors = document.querySelectorAll('a[href*=displayimage]');
         //console.log("anchors found: " + anchors.length);
-        if(anchors.length == 0) return;        
+        if(anchors.length == 0) return;
         for(var i = 0; i < anchors.length; i++) {
             var anchor = anchors[i];
             var thumbnail = anchor.querySelector('img');
@@ -111,7 +111,7 @@
             caption.appendChild(oldLink);
             //replace the thumbnail link with a direct link to the HD image
             var hdUrl = thumbnail.src.replace(/thumb_/, "");
-            anchors[i].href = hdUrl;            
+            anchors[i].href = hdUrl;
             //Copy image information from title attribute and append to caption
             for(var j = 0; j < imageInfo.length; j++) {
                 var r = new RegExp(imageInfo[j] + '=(.*)');
@@ -123,7 +123,7 @@
                     caption.appendChild(extraInfo);
                 }
             }
-            
+
             if(colorBorder) {
                 //Calculate image weight to chose a border color
                 var imageWeight;
@@ -136,9 +136,9 @@
                     imageWeight = area / 8192;
                 } else {
                     //Remove last 3 characters occupied by "KiB"
-                    imageWeight = s[1].slice(0, -3);            
+                    imageWeight = s[1].slice(0, -3);
                 }
-                
+
                 //Add the colored border to the thumbnail
                 var newColor;
                 for(var j = 0; j < colorCode.length; j++) {
@@ -148,14 +148,14 @@
                 }
                 thumbnail.style.border = borderSize + 'px solid ' + newColor;
             }
-            
+
             //Remove the tooltip if required
             if(removeTooltips) {
                 thumbnail.title = "";
             }
         }
     }
-    
+
     var isRunAlways = false;
     if(canRunAlways) {
         isRunAlways = checkRunAlways();
@@ -163,6 +163,6 @@
     // Detect if it's a coppermine gallery
     if(isRunAlways || document.querySelector('a[href*=coppermine]') !== null) {
         //console.log("Coppersmining...");
-        runCoppersmina();        
+        runCoppersmina();
     }
 })();
