@@ -2,7 +2,7 @@
 // @name        Coppersmina
 // @namespace   github.com/ariacorrente/coppersmina
 // @description Enhances Coppermine galleries with direct links, color coded border and other tricks. See source code for more info and settings.
-// @version     0.3
+// @version     0.4
 // @downloadURL https://raw.githubusercontent.com/ariacorrente/coppersmina/master/coppersmina.user.js
 // @match       http://*/*
 // @grant       GM_registerMenuCommand
@@ -71,9 +71,9 @@
         //Load saved config from disk
         var isRunAlways = GM_getValue("runAlways");
         if(isRunAlways) {
-            GM_registerMenuCommand("Stop forcing Coppersmina in current site", disableRunAlways, 'C');
+            GM_registerMenuCommand("Stop running Coppersmina in every site", disableRunAlways, 'C');
         } else {
-            GM_registerMenuCommand("Force Coppersmina in current site", enableRunAlways, 'C');
+            GM_registerMenuCommand("Run Coppersmina in every site", enableRunAlways, 'C');
         }
 
         if(autoDisableRunAlways) {
