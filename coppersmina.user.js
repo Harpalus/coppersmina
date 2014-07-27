@@ -2,7 +2,7 @@
 // @name        Coppersmina
 // @namespace   github.com/ariacorrente/coppersmina
 // @description Enhances Coppermine galleries with direct links, color coded border and other tricks. See source code for more info and settings.
-// @version     0.4
+// @version     0.5
 // @downloadURL https://raw.githubusercontent.com/ariacorrente/coppersmina/master/coppersmina.user.js
 // @match       http://*/*
 // @grant       GM_registerMenuCommand
@@ -11,7 +11,7 @@
 // ==/UserScript==
 
 /*
-Copyright (C) 2014  Nicola Felice
+Copyright (C) 2014  ariacorrente
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
