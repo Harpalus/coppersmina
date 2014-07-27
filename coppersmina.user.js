@@ -44,11 +44,11 @@
     // WARNING: The sizes must be in increasing order to work
     // Size is expressed in KB
     // Colors are CSS colors so you can use names or numbers
-    var colorCode=[{size: 0,    color: 'lightgray'},
-                   {size: 250,  color: 'lightgreen'},
-                   {size: 500,  color: 'yellow'},
-                   {size: 1000, color: 'red'},
-                   {size: 2000, color: 'magenta'}];
+    var colorCode = [{size: 0,    color: 'lightgray'},
+                     {size: 250,  color: 'lightgreen'},
+                     {size: 500,  color: 'yellow'},
+                     {size: 1000, color: 'red'},
+                     {size: 2000, color: 'magenta'}];
     // Thumbnail border size in pixels (don't add unit of measure in borderSize)
     var borderSize = 3;
     // Enable the feature tu run this script even if the site is not detected as a Coppermine gallery
@@ -79,8 +79,8 @@
         if(autoDisableRunAlways) {
             //If runAlways is enabled by more than 24 hours disable automatically
             //because it's probably been forgotten enabled
-            var timeEnabled = GM_getValue("timeRunAlwaysEnabled");
-            var timeNow = new Date(2014, 6, 27);
+            var timeEnabled = GM_getValue("timeRunAlwaysEnabled", Date.now());
+            var timeNow = Date.now();
             //elapsed in ms
             var elapsed = timeNow - timeEnabled;
             elapsed = elapsed / (1000 * 60 * 60);
@@ -102,6 +102,7 @@
             if(thumbnail === null) { continue; }
             //find the text field under the thumbnail
             var caption = anchor.parentNode.querySelector("span");
+            if(caption ===  null) { continue; }
             //add the old link to the caption
             var oldLink = document.createElement('a');
             oldLink.innerHTML = "Original link";
