@@ -1,7 +1,7 @@
 # Coppersmina
 
-Enhances Coppermine galleries with direct links, color coded border and other
-tiny features.
+User script that enhances Coppermine galleries with direct links, color coded
+border and other tiny features.
 
 Allows the use of mass downloaders like DownThemAll! and FlashGot.
 

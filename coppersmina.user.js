@@ -11,17 +11,55 @@
 // ==/UserScript==
 
 /*
- * This script will run on every site.
- * First the script will check if into the page there is a link containing "coppermine", this
- * indicate the site is a Coppermine gallery. Only after this check the rest of the script
- * will be executed.
- *
- * Features:
- * - Replace links in thumbnails to point directly to the high defintion image
- * - Add a colored border indicating the size of the image
- * - Add image info to the thumbnail caption and optionally remove the tooltip
- * - Allow the execution of the script even if the site is not detected as a Copperime gallery
- */
+Copyright (C) 2014  Nicola Felice
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Contact: https://github.com/ariacorrente/coppersmina
+*/
+
+/*
+# Coppersmina
+
+User script that enhances Coppermine galleries with direct links, color coded
+border and other tiny features.
+
+Allows the use of mass downloaders like DownThemAll! and FlashGot.
+
+## Features
+
+- Replace links in thumbnails to point directly to the high defintion image
+- Add a colored border indicating the size of the image
+- Append image information into the thumbnail's caption and remove the tooltip
+- The "always run" feature allows the execution of the script even if the site
+    is not automatically detected as a Coppermine gallery
+
+## Settings
+
+At the top of the script there are some variables the user can change to
+customize the script behaviour.
+
+- Choose what information to display into the capton of the thumbnail
+- Toggle the display of the colored border
+- Choose if the color of the border is calculated from the image KB size or the
+    image dimensions
+- Choose the colors to use for the border and the rages of size for each color
+- Width of the colored border
+- Toggle the "always run" feature
+- Toggle the auto deactivation of the "always run" feature after 24 hours of the
+    activation
+*/
 
 (function() {
     // START OF USER SETTINGS
