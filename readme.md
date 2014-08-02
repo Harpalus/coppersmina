@@ -5,6 +5,10 @@ border and other tiny features.
 
 Allows the use of mass downloaders like DownThemAll! and FlashGot.
 
+Project repository:
+
+https://github.com/ariacorrente/coppersmina
+
 ## Features
 
 - Replace links in thumbnails to point directly to the high defintion image
