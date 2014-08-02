@@ -176,7 +176,7 @@ customize the script behaviour.
                     caption.appendChild(document.createElement('br'));
                     caption.appendChild(extraInfo);
                 } else {
-                    clog("Image info extraction failed");
+                    clog('Image info "' + imageInfo[j] + '" not found');
                 }
             }
 
@@ -185,14 +185,18 @@ customize the script behaviour.
                 var imageWeight;
                 regex = new RegExp(colorByWhat + '=(.*)');
                 found = regex.exec(thumbnail.title);
-                if(colorByWhat == "Dimensions") {
-                    var sizes = found[1].split('x');
-                    var area = sizes[0] * sizes[1];
-                    //Divide to have comparable sizes with "FileSize" wich is expressed in KB
-                    imageWeight = area / 8192;
+                if(found) {
+                    if(colorByWhat == "Dimensions") {
+                        var sizes = found[1].split('x');
+                        var area = sizes[0] * sizes[1];
+                        //Divide to have comparable sizes with "FileSize" wich is expressed in KB
+                        imageWeight = area / 8192;
+                    } else {
+                        //Remove last 3 characters occupied by "KiB"
+                        imageWeight = found[1].slice(0, -3);
+                    }
                 } else {
-                    //Remove last 3 characters occupied by "KiB"
-                    imageWeight = found[1].slice(0, -3);
+                    clog('Image info "' + colorByWhat + '" not found, unable to color the border');
                 }
 
                 //Add the colored border to the thumbnail
