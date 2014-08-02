@@ -96,6 +96,14 @@ customize the script behaviour.
     //
     // END OF USER SETTINGS
 
+    var debugMode = true;
+
+    function clog(msg) {
+        if(debugMode) {
+            console.log(msg);
+        }
+    }
+
     function enableRunAlways() {
         GM_setValue("runAlways", true);
         GM_setValue("timeRunAlwaysEnabled", Date.now() );
@@ -133,14 +141,21 @@ customize the script behaviour.
     function runCoppersmina() {
         //find all the anchors around the the thumbnails and iterate
         var anchors = document.querySelectorAll('a[href*=displayimage]');
+        clog("Found " + anchors.length + " anchors");
         if(anchors.length === 0) { return; }
         for(var i = 0; i < anchors.length; i++) {
             var anchor = anchors[i];
             var thumbnail = anchor.querySelector('img');
-            if(thumbnail === null) { continue; }
+            if(thumbnail === null) {
+                clog("Thumbnail not found");
+                continue;
+            }
             //find the text field under the thumbnail
             var caption = anchor.parentNode.querySelector("span");
-            if(caption ===  null) { continue; }
+            if(caption ===  null) {
+                clog("Caption not found");
+                continue;
+            }
             //add the old link to the caption
             var oldLink = document.createElement('a');
             oldLink.innerHTML = "Original link";
@@ -160,6 +175,8 @@ customize the script behaviour.
                     extraInfo.innerHTML = found[1];
                     caption.appendChild(document.createElement('br'));
                     caption.appendChild(extraInfo);
+                } else {
+                    clog("Image info extraction failed");
                 }
             }
 
@@ -201,6 +218,8 @@ customize the script behaviour.
     }
     // Detect if it's a coppermine gallery
     if(isRunAlways || document.querySelector('a[href*=coppermine]') !== null) {
+        clog("Coppersmining");
         runCoppersmina();
     }
+
 }());
