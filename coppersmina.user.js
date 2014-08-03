@@ -64,11 +64,14 @@ customize the script behaviour.
 (function() {
     // START OF USER SETTINGS
     //
-    // Image info to display under the thumbnail
+    // Info to display in the caption of the thumbnail
     // All the available options are:
-    // var imageInfo = ['Filename, 'Filesize', 'Dimensions', 'Date added'];
-    // Empty array disable this feature
-    var imageInfo = ['Filesize'];
+    // var captionInfo = ['Filename, 'Filesize', 'Dimensions', 'Date added', 'Original link'];
+    // An empty array will disable this feature
+    var captionInfo = ['Filesize', 'Original link'];
+    // If you want to clear all the info from the caption and keep only the 
+    // data specified in captionInfo set this to true
+    var clearOldCapiton = true;
     // If image info is under the image the tooltips are no more required
     var removeTooltips = true;
     // Add a colored border based on image size
@@ -156,19 +159,31 @@ customize the script behaviour.
                 clog("Caption not found");
                 continue;
             }
-            //add the old link to the caption
-            var oldLink = document.createElement('a');
-            oldLink.innerHTML = "Original link";
-            oldLink.href = anchor.href;
-            caption.appendChild(document.createElement('br'));
-            caption.appendChild(oldLink);
+
             //replace the thumbnail link with a direct link to the HD image
             var hdUrl = thumbnail.src.replace(/thumb_/, "");
             anchors[i].href = hdUrl;
-            //Copy image information from title attribute and append to caption
+
+            //maybe clear the caption
+            if(clearOldCapiton) {
+                while(caption.firstChild) {
+                    caption.removeChild(caption.firstChild);
+                }
+            }
+
+            //Add info to the caption
             var regex, found;
-            for(var j = 0; j < imageInfo.length; j++) {
-                regex = new RegExp(imageInfo[j] + '=(.*)');
+            for(var j = 0; j < captionInfo.length; j++) {
+                if(captionInfo[j] === 'Original link') {
+                    //add the old link to the caption
+                    var oldLink = document.createElement('a');
+                    oldLink.innerHTML = "Original link";
+                    oldLink.href = anchor.href;
+                    caption.appendChild(document.createElement('br'));
+                    caption.appendChild(oldLink);
+                    continue;
+                }
+                regex = new RegExp(captionInfo[j] + '=(.*)');
                 found = regex.exec(thumbnail.title);
                 if(found !== null) {
                     var extraInfo = document.createElement('span');
@@ -176,7 +191,7 @@ customize the script behaviour.
                     caption.appendChild(document.createElement('br'));
                     caption.appendChild(extraInfo);
                 } else {
-                    clog('Image info "' + imageInfo[j] + '" not found');
+                    clog('Image info "' + captionInfo[j] + '" not found');
                 }
             }
 
