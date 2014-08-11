@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name        Coppersmina
 // @namespace   github.com/ariacorrente/coppersmina
-// @description Enhances Coppermine galleries with direct links, color coded border and other tricks. See source code for more info and settings.
+// @description Enhances Coppermine galleries with direct links, color coded border and other tricks. See source code for more info.
 // @version     0.6
 // @downloadURL https://raw.githubusercontent.com/ariacorrente/coppersmina/master/coppersmina.user.js
 // @match       http://*/*
+// @require     https://greasyfork.org/scripts/2855-gm-config/code/GM_config.js?version=8032
 // @grant       GM_registerMenuCommand
 // @grant       GM_setValue
 // @grant       GM_getValue
@@ -44,62 +45,16 @@ Allows the use of mass downloaders like DownThemAll! and FlashGot.
 - Append image information into the thumbnail's caption and remove the tooltip
 - The "always run" feature allows the execution of the script even if the site
     is not automatically detected as a Coppermine gallery
-
-## Settings
-
-At the top of the script there are some variables the user can change to
-customize the script behaviour.
-
-- Choose what information to display into the capton of the thumbnail
-- Toggle the display of the colored border
-- Choose if the color of the border is calculated from the image KB size or the
-    image dimensions
-- Choose the colors to use for the border and the rages of size for each color
-- Width of the colored border
-- Toggle the "always run" feature
-- Toggle the auto deactivation of the "always run" feature after 24 hours of the
-    activation
 */
 
 (function() {
-    // START OF USER SETTINGS
-    //
-    // Info to display in the caption of the thumbnail
-    // All the available options are:
-    // var captionInfo = ['Filename, 'Filesize', 'Dimensions', 'Date added', 'Original link'];
-    // An empty array will disable this feature
-    var captionInfo = ['Filesize', 'Original link'];
-    // If you want to clear all the info from the caption and keep only the 
-    // data specified in captionInfo set this to true
-    var clearOldCapiton = true;
-    // If image info is under the image the tooltips are no more required
-    var removeTooltips = true;
-    // Add a colored border based on image size
-    var colorBorder = true;
-    // The border can be colored using two possible data source:
-    // - "Dimensions": area of the image in pixels.
-    // - "Filesize": KiloBytes of the HD image. File compession and image content may make this
-    //  option less reliable.
-    var colorByWhat = 'Dimensions';
-    // Colors to be used for the border.
-    // WARNING: The sizes must be in increasing order to work
-    // Size is expressed in KB
-    // Colors are CSS colors so you can use names or numbers
     var colorCode = [{size: 0,    color: 'lightgray'},
                      {size: 250,  color: 'lightgreen'},
                      {size: 500,  color: 'yellow'},
                      {size: 1000, color: 'red'},
                      {size: 2000, color: 'magenta'}];
-    // Thumbnail border size in pixels (don't add unit of measure in borderSize)
-    var borderSize = 3;
-    // Enable the feature tu run this script even if the site is not detected as a Coppermine gallery
-    var canRunAlways = true;
-    // After 24 hours the "run always" feature will be disabled automatically
-    var autoDisableRunAlways = true;
-    //
-    // END OF USER SETTINGS
 
-    var debugMode = false;
+    var debugMode = true;
 
     function clog(msg) {
         if(debugMode) {
@@ -107,136 +62,276 @@ customize the script behaviour.
         }
     }
 
-    function enableRunAlways() {
-        GM_setValue("runAlways", true);
-        GM_setValue("timeRunAlwaysEnabled", Date.now() );
+    //Settings dialog will be inserted in configFrame
+    var configFrame;
+    GM_config.init({
+        "id": "GM_config",
+        "title": "Coppersmina - Settings",
+        "fields": {
+            "colorBorder": {
+                "section": ["Border of thumbnails", "Add a color coded border based on the size of the image. From smaller to bigger the colors are sorted in the order \
+                <span class='colorLevel0'>small</span> < \
+                <span class='colorLevel1'>interesting</span> < \
+                <span class='colorLevel2'>nice</span> < \
+                <span class='colorLevel3'>big</span> < \
+                <span class='colorLevel4'>huge"],
+                "label": "Enable colored borders",
+                "labelPos": "right",
+                "type": "checkbox",
+                "default": true
+            },
+            "colorByWhat": {
+                "label": "Color based on the image feature:",
+                "type": "select",
+                "title": "Dimensions will use the image width and height\nFilesize will use the size of the file.",
+                "options": ["Dimensions", "Filesize"],
+                "default": "Dimensions"
+            },
+            "borderSize": {
+                "label": "Border size:",
+                "title": "Width in pixels of the border drawn around the thumbnails",
+                "type": "int",
+                "min": 0,
+                "size": 5,
+                "default": 3
+            },
+            "clearOldCaption": {
+                "section": ['Captions', 'Remove or add information to the captions below the thumbnails.'],
+                "label": "Clear original caption",
+                "labelPos": "right",
+                "type": "checkbox",
+                "default": true
+            },
+            "ciShowFilesize": {
+                "label": "Show file size",
+                "labelPos": "right",
+                "type": "checkbox",
+                "default": true
+            },
+            "ciShowDimensions": {
+                "label": "Show image dimensions",
+                "labelPos": "right",
+                "type": "checkbox",
+                "default": false
+            },
+            "ciShowDateAdded": {
+                "label": "Show date added",
+                "labelPos": "right",
+                "type": "checkbox",
+                "default": false
+            },
+            "ciShowOriginalLink": {
+                "label": "Sow original link",
+                "labelPos": "right",
+                "title": "The original link points to the medium resolution image",
+                "type": "checkbox",
+                "default": true
+            },
+            "removeTooltips": {
+                "section": ['Misc'],
+                "label": "Remove tooltips from thumbnails",
+                "title": "If interesting data is moved inside the caption, the tooltip is no more required",
+                "labelPos": "right",
+                "type": "checkbox",
+                "default": true
+            },
+            "runAlways": {
+                "label": 'Run always on "' + window.location.hostname + '"',
+                "labelPos": "right",
+                "title": "This is the only domain specific option.\nEnabling this option will force Coppermina to process the page even if it has not been detected as Coppermine gallery.",
+                "type": "checkbox",
+                "default": false,
+                "save": false   //this is handled by localstorage
+            }
+        },
+        "events": {
+            "save": function() {
+                var savedRunAlways = GM_config.fields['runAlways'].toValue();
+                if(savedRunAlways === true) {
+                    localStorage["runAlways"] = "true";
+                } else {
+                    localStorage.removeItem("runAlways");
+                }
+                clog("Saved field runAlways: " + savedRunAlways);
+                //Reload to apply changes to page
+                window.location.reload(false);
+            },
+            "init": function() {
+                //Manually load runAlways config from local storage
+                GM_config.fields['runAlways'].value = localStorage.getItem("runAlways") === "true";
+            },
+            "open": function() {
+                //On opening add an extra heading to display what will be done
+                var configHeader = document.getElementById("GM_config_header");
+                if(configHeader === null) {
+                    clog("Config header not found");
+                    return;
+                }
+                var configInfo = document.createElement("div");
+                configInfo.innerHTML = "What will Coppermina do on this site:";
+                var spanResult = document.createElement("span");
+                var pComment = document.createElement("p");
+                if(coppermineDetected) {
+                    spanResult.innerHTML = "Execute automatically";
+                    spanResult.className = "positive";
+                    pComment.innerHTML = "Coppermina will execute on this site because it has been detected as a Coppermine gallery after scanning the page content.<br /> If some features are not working it may be caused by a non standard Coppermine configuration.";
+                } else if(runAlways){
+                    spanResult.innerHTML = "Execute forced";
+                    spanResult.className = "forced";
+                    pComment.innerHTML = "Coppermina will execute on this site even if it's not detected as a Coppermine gallery. This is caused by the option 'Run Always...'.";
+                } else {
+                    spanResult.innerHTML = "Nothing";
+                    spanResult.className = "negative";
+                    pComment.innerHTML = "Coppermina will do nothing on this site. If you want to force the execution you must toggle the option 'Run always on...' and then save to reload the page.";
+                }
+                configInfo.appendChild(spanResult);
+                configInfo.appendChild(document.createElement("br"));
+                configInfo.appendChild(pComment);
+                configHeader.appendChild(configInfo);
+            }
+        },
+        "css": 'div#GM_config_header div { font-size: 13pt; margin: 10px auto 10px; padding: 5px } \
+                div#GM_config_header div span { padding: 5px } \
+                span.positive { color: green } \
+                span.forced { color: orange } \
+                span.negative { color: black } \
+                div#GM_config_header div p { font-size: 12px; text-align: left} \
+                #GM_config_section_desc_0 span { display: inline-block } \
+                div.dropShadow { box-shadow: 3px 3px 5px 5px #444 } \
+                #GM_config div { padding: 0 5px 0 5px } \
+                span.colorLevel0 { border: 2px solid ' + colorCode[0].color + '} \
+                span.colorLevel1 { border: 2px solid ' + colorCode[1].color + '} \
+                span.colorLevel2 { border: 2px solid ' + colorCode[2].color + '} \
+                span.colorLevel3 { border: 2px solid ' + colorCode[3].color + '} \
+                span.colorLevel4 { border: 2px solid ' + colorCode[4].color + '}'
+    });
+
+    var captionInfo = [];
+    var clearOldCaption = GM_config.get("clearOldCaption");
+    if( GM_config.get("ciShowFilesize") ) {
+        captionInfo.push("Filesize");
+    }
+    if( GM_config.get("ciShowDimensions") ) {
+        captionInfo.push("Dimensions");
+    }
+    if( GM_config.get("ciShowDateAdded") ) {
+        captionInfo.push("Date added");
+    }
+    if( GM_config.get("ciShowOriginalLink") ) {
+        captionInfo.push("Original link");
+    }
+    var colorBorder = GM_config.get("colorBorder");
+    var colorByWhat = GM_config.get("colorByWhat");
+    var borderSize = GM_config.get("borderSize");
+    var removeTooltips = GM_config.get("removeTooltips");
+    //runAlways is handled by localstorage so it's domain specific
+    var runAlways = localStorage.getItem("runAlways") === "true";
+
+    var coppermineDetected = document.querySelector('a[href*=coppermine]') !== null;
+    GM_registerMenuCommand("Coppersmina - Settings", openConfig, "C");
+
+    function openConfig() {
+        if(!configFrame) {
+            configFrame = document.createElement('div');
+            configFrame.className = "dropShadow";
+            document.body.appendChild(configFrame);
+        }
+        GM_config.init({"id": "GM_config", "frame": configFrame});
+        GM_config.open();
     }
 
-    function disableRunAlways() {
-        GM_setValue("runAlways", false);
-    }
-
-    function checkRunAlways() {
-        //Load saved config from disk
-        var isRunAlways = GM_getValue("runAlways");
-        if(isRunAlways) {
-            GM_registerMenuCommand("Stop running Coppersmina in every site", disableRunAlways, 'C');
-        } else {
-            GM_registerMenuCommand("Run Coppersmina in every site", enableRunAlways, 'C');
+function runCoppersmina() {
+    //find all the anchors around the the thumbnails and iterate
+    var anchors = document.querySelectorAll('a[href*=displayimage]');
+    clog("Found " + anchors.length + " anchors");
+    for(var i = 0; i < anchors.length; i++) {
+        var anchor = anchors[i];
+        clog( "Working on anchor: " + anchor.href);
+        var thumbnail = anchor.querySelector('img');
+        if(thumbnail === null) {
+            clog("Thumbnail not found");
+            continue;
+        }
+        //find the text field under the thumbnail
+        var caption = anchor.parentNode.querySelector("span");
+        if(caption ===  null) {
+            clog("Caption not found");
+            continue;
         }
 
-        if(autoDisableRunAlways) {
-            //If runAlways is enabled by more than 24 hours disable automatically
-            //because it's probably been forgotten enabled
-            var timeEnabled = GM_getValue("timeRunAlwaysEnabled", Date.now());
-            var timeNow = Date.now();
-            //elapsed in ms
-            var elapsed = timeNow - timeEnabled;
-            elapsed = elapsed / (1000 * 60 * 60);
-            if(elapsed > 24) {
-                disableRunAlways();
+        //maybe clear the caption
+        if(clearOldCaption) {
+            while(caption.firstChild) {
+                caption.removeChild(caption.firstChild);
             }
         }
 
-        return isRunAlways;
-    }
-
-    function runCoppersmina() {
-        //find all the anchors around the the thumbnails and iterate
-        var anchors = document.querySelectorAll('a[href*=displayimage]');
-        clog("Found " + anchors.length + " anchors");
-        if(anchors.length === 0) { return; }
-        for(var i = 0; i < anchors.length; i++) {
-            var anchor = anchors[i];
-            var thumbnail = anchor.querySelector('img');
-            if(thumbnail === null) {
-                clog("Thumbnail not found");
+        //Add info to the caption
+        var regex, found;
+        for(var j = 0; j < captionInfo.length; j++) {
+            if(captionInfo[j] === 'Original link') {
+                //add the old link to the caption
+                var oldLink = document.createElement('a');
+                oldLink.innerHTML = "Original link";
+                oldLink.href = anchor.href;
+                caption.appendChild(document.createElement('br'));
+                caption.appendChild(oldLink);
                 continue;
             }
-            //find the text field under the thumbnail
-            var caption = anchor.parentNode.querySelector("span");
-            if(caption ===  null) {
-                clog("Caption not found");
-                continue;
-            }
-
-            //replace the thumbnail link with a direct link to the HD image
-            var hdUrl = thumbnail.src.replace(/thumb_/, "");
-            anchors[i].href = hdUrl;
-
-            //maybe clear the caption
-            if(clearOldCapiton) {
-                while(caption.firstChild) {
-                    caption.removeChild(caption.firstChild);
-                }
-            }
-
-            //Add info to the caption
-            var regex, found;
-            for(var j = 0; j < captionInfo.length; j++) {
-                if(captionInfo[j] === 'Original link') {
-                    //add the old link to the caption
-                    var oldLink = document.createElement('a');
-                    oldLink.innerHTML = "Original link";
-                    oldLink.href = anchor.href;
-                    caption.appendChild(document.createElement('br'));
-                    caption.appendChild(oldLink);
-                    continue;
-                }
-                regex = new RegExp(captionInfo[j] + '=(.*)');
-                found = regex.exec(thumbnail.title);
-                if(found !== null) {
-                    var extraInfo = document.createElement('span');
-                    extraInfo.innerHTML = found[1];
-                    caption.appendChild(document.createElement('br'));
-                    caption.appendChild(extraInfo);
-                } else {
-                    clog('Image info "' + captionInfo[j] + '" not found');
-                }
-            }
-
-            if(colorBorder) {
-                //Calculate image weight to chose a border color
-                var imageWeight;
-                regex = new RegExp(colorByWhat + '=(.*)');
-                found = regex.exec(thumbnail.title);
-                if(found) {
-                    if(colorByWhat == "Dimensions") {
-                        var sizes = found[1].split('x');
-                        var area = sizes[0] * sizes[1];
-                        //Divide to have comparable sizes with "FileSize" wich is expressed in KB
-                        imageWeight = area / 8192;
-                    } else {
-                        //Remove last 3 characters occupied by "KiB"
-                        imageWeight = found[1].slice(0, -3);
-                    }
-                } else {
-                    clog('Image info "' + colorByWhat + '" not found, unable to color the border');
-                }
-
-                //Add the colored border to the thumbnail
-                var newColor;
-                for(j = 0; j < colorCode.length; j++) {
-                    if(imageWeight > colorCode[j].size) {
-                        newColor = colorCode[j].color;
-                    }
-                }
-                thumbnail.style.border = borderSize + 'px solid ' + newColor;
-            }
-
-            //Remove the tooltip if required
-            if(removeTooltips) {
-                thumbnail.title = "";
+            regex = new RegExp(captionInfo[j] + '=(.*)');
+            found = regex.exec(thumbnail.title);
+            if(found !== null) {
+                var extraInfo = document.createElement('span');
+                extraInfo.innerHTML = found[1];
+                caption.appendChild(document.createElement('br'));
+                caption.appendChild(extraInfo);
+            } else {
+                clog('Image info "' + captionInfo[j] + '" not found');
             }
         }
-    }
 
-    var isRunAlways = false;
-    if(canRunAlways) {
-        isRunAlways = checkRunAlways();
+        //replace the thumbnail link with a direct link to the HD image
+        var hdUrl = thumbnail.src.replace(/thumb_/, "");
+        anchors[i].href = hdUrl;
+
+        if(colorBorder) {
+            //Calculate image weight to chose a border color
+            var imageWeight;
+            regex = new RegExp(colorByWhat + '=(.*)');
+            found = regex.exec(thumbnail.title);
+            if(found) {
+                if(colorByWhat == "Dimensions") {
+                    var sizes = found[1].split('x');
+                    var area = sizes[0] * sizes[1];
+                    //Divide to have comparable sizes with "FileSize" wich is expressed in KB
+                    imageWeight = area / 8192;
+                } else {
+                    //Remove last 3 characters occupied by "KiB"
+                    imageWeight = found[1].slice(0, -3);
+                }
+            } else {
+                clog('Image info "' + colorByWhat + '" not found, unable to color the border');
+            }
+
+            //Add the colored border to the thumbnail
+            var newColor;
+            for(j = 0; j < colorCode.length; j++) {
+                if(imageWeight > colorCode[j].size) {
+                    newColor = colorCode[j].color;
+                }
+            }
+            thumbnail.style.border = borderSize + 'px solid ' + newColor;
+        }
+
+        //Remove the tooltip if required
+        if(removeTooltips) {
+            thumbnail.title = "";
+        }
     }
-    // Detect if it's a coppermine gallery
-    if(isRunAlways || document.querySelector('a[href*=coppermine]') !== null) {
+}
+
+    //Starts here
+    if(runAlways || coppermineDetected) {
         clog("Coppersmining");
         runCoppersmina();
     }
