@@ -47,7 +47,7 @@ Allows the use of mass downloaders like DownThemAll! and FlashGot.
     is not automatically detected as a Coppermine gallery
 */
 
-(function() {
+(function () {
     var colorCode = [{size: 0,    color: 'lightgray'},
                      {size: 250,  color: 'lightgreen'},
                      {size: 500,  color: 'yellow'},
@@ -57,10 +57,16 @@ Allows the use of mass downloaders like DownThemAll! and FlashGot.
     var debugMode = true;
 
     function clog(msg) {
-        if(debugMode) {
+        if (debugMode) {
             console.log(msg);
         }
     }
+
+    //Detect if this site is a Coppermine gallery
+    var coppermineDetected = document.querySelector('a[href*=coppermine]') !== null;
+
+    //runAlways is handled by localstorage so it's domain specific
+    var runAlways = localStorage.getItem("runAlways") === "true";
 
     //Settings dialog will be inserted in configFrame
     var configFrame;
@@ -145,10 +151,10 @@ Allows the use of mass downloaders like DownThemAll! and FlashGot.
             }
         },
         "events": {
-            "save": function() {
-                var savedRunAlways = GM_config.fields['runAlways'].toValue();
-                if(savedRunAlways === true) {
-                    localStorage["runAlways"] = "true";
+            "save": function () {
+                var savedRunAlways = GM_config.fields.runAlways.toValue();
+                if (savedRunAlways === true) {
+                    localStorage.runAlways = "true";
                 } else {
                     localStorage.removeItem("runAlways");
                 }
@@ -156,14 +162,14 @@ Allows the use of mass downloaders like DownThemAll! and FlashGot.
                 //Reload to apply changes to page
                 window.location.reload(false);
             },
-            "init": function() {
+            "init": function () {
                 //Manually load runAlways config from local storage
-                GM_config.fields['runAlways'].value = localStorage.getItem("runAlways") === "true";
+                GM_config.fields.runAlways.value = localStorage.getItem("runAlways") === "true";
             },
-            "open": function() {
+            "open": function () {
                 //On opening add an extra heading to display what will be done
                 var configHeader = document.getElementById("GM_config_header");
-                if(configHeader === null) {
+                if (configHeader === null) {
                     clog("Config header not found");
                     return;
                 }
@@ -171,11 +177,11 @@ Allows the use of mass downloaders like DownThemAll! and FlashGot.
                 configInfo.innerHTML = "What will Coppermina do on this site:";
                 var spanResult = document.createElement("span");
                 var pComment = document.createElement("p");
-                if(coppermineDetected) {
+                if (coppermineDetected) {
                     spanResult.innerHTML = "Execute automatically";
                     spanResult.className = "positive";
                     pComment.innerHTML = "Coppermina will execute on this site because it has been detected as a Coppermine gallery after scanning the page content.<br /> If some features are not working it may be caused by a non standard Coppermine configuration.";
-                } else if(runAlways){
+                } else if (runAlways) {
                     spanResult.innerHTML = "Execute forced";
                     spanResult.className = "forced";
                     pComment.innerHTML = "Coppermina will execute on this site even if it's not detected as a Coppermine gallery. This is caused by the option 'Run Always...'.";
@@ -208,30 +214,25 @@ Allows the use of mass downloaders like DownThemAll! and FlashGot.
 
     var captionInfo = [];
     var clearOldCaption = GM_config.get("clearOldCaption");
-    if( GM_config.get("ciShowFilesize") ) {
+    if (GM_config.get("ciShowFilesize")) {
         captionInfo.push("Filesize");
     }
-    if( GM_config.get("ciShowDimensions") ) {
+    if (GM_config.get("ciShowDimensions")) {
         captionInfo.push("Dimensions");
     }
-    if( GM_config.get("ciShowDateAdded") ) {
+    if (GM_config.get("ciShowDateAdded")) {
         captionInfo.push("Date added");
     }
-    if( GM_config.get("ciShowOriginalLink") ) {
+    if (GM_config.get("ciShowOriginalLink")) {
         captionInfo.push("Original link");
     }
     var colorBorder = GM_config.get("colorBorder");
     var colorByWhat = GM_config.get("colorByWhat");
     var borderSize = GM_config.get("borderSize");
     var removeTooltips = GM_config.get("removeTooltips");
-    //runAlways is handled by localstorage so it's domain specific
-    var runAlways = localStorage.getItem("runAlways") === "true";
-
-    var coppermineDetected = document.querySelector('a[href*=coppermine]') !== null;
-    GM_registerMenuCommand("Coppersmina - Settings", openConfig, "C");
 
     function openConfig() {
-        if(!configFrame) {
+        if (!configFrame) {
             configFrame = document.createElement('div');
             configFrame.className = "dropShadow";
             document.body.appendChild(configFrame);
@@ -239,99 +240,107 @@ Allows the use of mass downloaders like DownThemAll! and FlashGot.
         GM_config.init({"id": "GM_config", "frame": configFrame});
         GM_config.open();
     }
+    GM_registerMenuCommand("Coppersmina - Settings", openConfig, "C");
 
-function runCoppersmina() {
-    //find all the anchors around the the thumbnails and iterate
-    var anchors = document.querySelectorAll('a[href*=displayimage]');
-    clog("Found " + anchors.length + " anchors");
-    for(var i = 0; i < anchors.length; i++) {
-        var anchor = anchors[i];
-        clog( "Working on anchor: " + anchor.href);
-        var thumbnail = anchor.querySelector('img');
-        if(thumbnail === null) {
-            clog("Thumbnail not found");
-            continue;
-        }
-        //find the text field under the thumbnail
-        var caption = anchor.parentNode.querySelector("span");
-        if(caption ===  null) {
-            clog("Caption not found");
-            continue;
-        }
+    function runCoppersmina() {
+        var i, //index to iterate anchors
+            j, //index to iterate captionInfo
+            anchor, //a element being analyzed
+            thumbnail, //img element inside anchor
+            caption, //span element below the thumbnail
+            regex, //regular expression searching thumbnail's title
+            found, //regex result
+            extraInfo, //element to append into caption
+            imageWeight, //quantity to use to choose thumbnail's border color
+            newColor; //color to use for thumbnail's border
 
-        //maybe clear the caption
-        if(clearOldCaption) {
-            while(caption.firstChild) {
-                caption.removeChild(caption.firstChild);
-            }
-        }
-
-        //Add info to the caption
-        var regex, found;
-        for(var j = 0; j < captionInfo.length; j++) {
-            if(captionInfo[j] === 'Original link') {
-                //add the old link to the caption
-                var oldLink = document.createElement('a');
-                oldLink.innerHTML = "Original link";
-                oldLink.href = anchor.href;
-                caption.appendChild(document.createElement('br'));
-                caption.appendChild(oldLink);
+        //find all the anchors around the the thumbnails and iterate
+        var anchors = document.querySelectorAll('a[href*=displayimage]');
+        clog("Found " + anchors.length + " anchors");
+        for (i = 0; i < anchors.length; i++) {
+            anchor = anchors[i];
+            clog("Working on anchor: " + anchor.href);
+            thumbnail = anchor.querySelector('img');
+            if (thumbnail === null) {
+                clog("Thumbnail not found");
                 continue;
             }
-            regex = new RegExp(captionInfo[j] + '=(.*)');
-            found = regex.exec(thumbnail.title);
-            if(found !== null) {
-                var extraInfo = document.createElement('span');
-                extraInfo.innerHTML = found[1];
-                caption.appendChild(document.createElement('br'));
-                caption.appendChild(extraInfo);
-            } else {
-                clog('Image info "' + captionInfo[j] + '" not found');
+            //find the text field under the thumbnail
+            caption = anchor.parentNode.querySelector("span");
+            if (caption ===  null) {
+                clog("Caption not found");
+                continue;
             }
-        }
 
-        //replace the thumbnail link with a direct link to the HD image
-        var hdUrl = thumbnail.src.replace(/thumb_/, "");
-        anchors[i].href = hdUrl;
+            //maybe clear the caption
+            if (clearOldCaption) {
+                while (caption.firstChild) {
+                    caption.removeChild(caption.firstChild);
+                }
+            }
 
-        if(colorBorder) {
-            //Calculate image weight to chose a border color
-            var imageWeight;
-            regex = new RegExp(colorByWhat + '=(.*)');
-            found = regex.exec(thumbnail.title);
-            if(found) {
-                if(colorByWhat == "Dimensions") {
-                    var sizes = found[1].split('x');
-                    var area = sizes[0] * sizes[1];
-                    //Divide to have comparable sizes with "FileSize" wich is expressed in KB
-                    imageWeight = area / 8192;
+            //Add info to the caption
+            for (j = 0; j < captionInfo.length; j++) {
+                if (captionInfo[j] === 'Original link') {
+                    //add the old link to the caption
+                    extraInfo = document.createElement('a');
+                    extraInfo.innerHTML = "Original link";
+                    extraInfo.href = anchor.href;
+                    caption.appendChild(document.createElement('br'));
+                    caption.appendChild(extraInfo);
+                    continue;
+                }
+                regex = new RegExp(captionInfo[j] + '=(.*)');
+                found = regex.exec(thumbnail.title);
+                if (found !== null) {
+                    extraInfo = document.createElement('span');
+                    extraInfo.innerHTML = found[1];
+                    caption.appendChild(document.createElement('br'));
+                    caption.appendChild(extraInfo);
                 } else {
-                    //Remove last 3 characters occupied by "KiB"
-                    imageWeight = found[1].slice(0, -3);
-                }
-            } else {
-                clog('Image info "' + colorByWhat + '" not found, unable to color the border');
-            }
-
-            //Add the colored border to the thumbnail
-            var newColor;
-            for(j = 0; j < colorCode.length; j++) {
-                if(imageWeight > colorCode[j].size) {
-                    newColor = colorCode[j].color;
+                    clog('Image info "' + captionInfo[j] + '" not found');
                 }
             }
-            thumbnail.style.border = borderSize + 'px solid ' + newColor;
-        }
 
-        //Remove the tooltip if required
-        if(removeTooltips) {
-            thumbnail.title = "";
+            //replace the thumbnail link with a direct link to the HD image
+           anchor.href = thumbnail.src.replace(/thumb_/, "");
+
+            if (colorBorder) {
+                //Calculate image weight to chose a border color
+                regex = new RegExp(colorByWhat + '=(.*)');
+                found = regex.exec(thumbnail.title);
+                if (found) {
+                    if (colorByWhat === "Dimensions") {
+                        var sizes = found[1].split('x');
+                        var area = sizes[0] * sizes[1];
+                        //Divide to have comparable sizes with "FileSize" wich is expressed in KB
+                        imageWeight = area / 8192;
+                    } else {
+                        //Remove last 3 characters occupied by "KiB"
+                        imageWeight = found[1].slice(0, -3);
+                    }
+                } else {
+                    clog('Image info "' + colorByWhat + '" not found, unable to color the border');
+                }
+
+                //Add the colored border to the thumbnail
+                for (j = 0; j < colorCode.length; j++) {
+                    if (imageWeight > colorCode[j].size) {
+                        newColor = colorCode[j].color;
+                    }
+                }
+                thumbnail.style.border = borderSize + 'px solid ' + newColor;
+            }
+
+            //Remove the tooltip if required
+            if (removeTooltips) {
+                thumbnail.title = "";
+            }
         }
     }
-}
 
     //Starts here
-    if(runAlways || coppermineDetected) {
+    if (runAlways || coppermineDetected) {
         clog("Coppersmining");
         runCoppersmina();
     }
