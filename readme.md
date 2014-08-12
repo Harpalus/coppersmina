@@ -15,6 +15,7 @@ https://github.com/ariacorrente/coppersmina
 - Replace links in thumbnails to point directly to the high defintion image
 - Add a colored border indicating the size of the image
 - Append image information into the thumbnail's caption
+- Add a button to open the thumbnail's parent album into a new tab
 - Remove the tooltip from the thumbnails
 - The "always run" feature allows the execution of the script even if the site
     is not automatically detected as a Coppermine gallery

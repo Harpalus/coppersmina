@@ -9,6 +9,7 @@
 // @grant       GM_registerMenuCommand
 // @grant       GM_setValue
 // @grant       GM_getValue
+// @grant       GM_openInTab
 // ==/UserScript==
 
 /*
@@ -128,6 +129,13 @@ Allows the use of mass downloaders like DownThemAll! and FlashGot.
                 "type": "checkbox",
                 "default": false
             },
+            "ciShowAlbumButton": {
+                "label": "Show button to open album in new tab",
+                "labelPos": "right",
+                "title": "Show a button that will open the page of the the parent album into a new tab. The button will work only with a left mouse click. The opening will be slower than a link because the script must do two HTTP requests to the server.",
+                "type": "checkbox",
+                "default": true
+            },
             "ciShowOriginalLink": {
                 "label": "Sow original link",
                 "labelPos": "right",
@@ -228,6 +236,9 @@ Allows the use of mass downloaders like DownThemAll! and FlashGot.
     if (GM_config.get("ciShowOriginalLink")) {
         captionInfo.push("Original link");
     }
+    if (GM_config.get("ciShowAlbumButton")) {
+        captionInfo.push("Album button");
+    }
     var colorBorder = GM_config.get("colorBorder");
     var colorByWhat = GM_config.get("colorByWhat");
     var borderSize = GM_config.get("borderSize");
@@ -243,6 +254,52 @@ Allows the use of mass downloaders like DownThemAll! and FlashGot.
         GM_config.open();
     }
     GM_registerMenuCommand("Coppersmina - Settings", openConfig, "C");
+
+    /*
+     * Load in a new tab the parent album
+     * 1- query the server with the old link page
+     * 2- extract the parent album link
+     * 3- open a new tab with the album link
+     */
+    function loadAlbum() {
+        var xhr,    //XML http request
+            regex,  //regex tool
+            found,  //regex result
+            i,      //iterator over regex results
+            anchor; //a element being analyzed
+        xhr = new XMLHttpRequest();
+        xhr.open("GET", this.href, true);
+        xhr.onload = function () {
+
+            var anchors = xhr.responseXML.querySelectorAll('a[href*=thumbnails]');
+            clog("Album anchors found:" + anchors.length);
+            found = false;
+            for (i = 0; i < anchors.length && found === false; i++) {
+                //Search for an url like:
+                //http://coppermine-gallery.net/demo/cpg15x/thumbnails.php?album=2
+                anchor = anchors[i];
+                clog("Regexing " + anchor.href);
+                regex = new RegExp(/thumbnails\.php\?album=[0-9]+$/);
+                found = regex.test(anchor.href);
+                clog("Regex result: " + found);
+            }
+
+            if (found) {
+                /* This will open a new tab in background only if
+                 * "When I open a link in a new tab, switch to it immediately"
+                 * in firefox settings or "browser.tabs.loadInBackground" in
+                 * about:config is set to false. False is the default value.
+                 */
+                GM_openInTab(anchor.href);
+            } else {
+                clog("Album link not found");
+            }
+        };
+        xhr.responseType = 'document';
+        xhr.send();
+        //Avoid default behaviour
+        return false;
+    }
 
     function runCoppersmina() {
         var i, //index to iterate anchors
@@ -292,6 +349,21 @@ Allows the use of mass downloaders like DownThemAll! and FlashGot.
                     caption.appendChild(extraInfo);
                     continue;
                 }
+                if (captionInfo[j] === "Album button") {
+                    //Add a button to open the album into a new tab
+                    //Use a button instead of a link because the button will not
+                    //react o middle click.
+                    extraInfo = document.createElement('input');
+                    extraInfo.type = "button";
+                    extraInfo.value = "Open album";
+                    extraInfo.style = "border: 1px solid gray";
+                    extraInfo.href = anchor.href;
+                    extraInfo.onclick = loadAlbum;
+                    extraInfo.title = "Left click to open in new tab.\nMiddle click will not work.";
+                    caption.appendChild(document.createElement('br'));
+                    caption.appendChild(extraInfo);
+                    continue;
+                }
                 regex = new RegExp(captionInfo[j] + '=(.*)');
                 found = regex.exec(thumbnail.title);
                 if (found !== null) {
@@ -305,7 +377,7 @@ Allows the use of mass downloaders like DownThemAll! and FlashGot.
             }
 
             //replace the thumbnail link with a direct link to the HD image
-           anchor.href = thumbnail.src.replace(/thumb_/, "");
+            anchor.href = thumbnail.src.replace(/thumb_/, "");
 
             if (colorBorder) {
                 //Calculate image weight to chose a border color
