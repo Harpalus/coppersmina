@@ -3,6 +3,7 @@
 // @namespace   github.com/ariacorrente/coppersmina
 // @description Enhances Coppermine galleries with direct links, color coded border and other tricks. See source code for more info.
 // @version     0.6
+// @license     GPL version 3 or any later version; http://www.gnu.org/copyleft/gpl.html
 // @downloadURL https://raw.githubusercontent.com/ariacorrente/coppersmina/master/coppersmina.user.js
 // @match       http://*/*
 // @require     https://greasyfork.org/scripts/2855-gm-config/code/GM_config.js?version=8032
