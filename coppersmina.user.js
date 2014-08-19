@@ -135,7 +135,7 @@ sites misbehave.
             },
             "clearOldCaption": {
                 "section": ['Captions', 'Remove or add information to the captions below the thumbnails.'],
-                "label": "Clear original caption",
+                "label": "Clear original captions",
                 "labelPos": "right",
                 "type": "checkbox",
                 "default": true
@@ -158,10 +158,10 @@ sites misbehave.
                 "type": "checkbox",
                 "default": false
             },
-            "ciShowAlbumButton": {
-                "label": "Show button to open album in new tab",
+            "ciShowAlbumLink": {
+                "label": "Show link to open the album",
                 "labelPos": "right",
-                "title": "Show a button that will open the page of the the parent album into a new tab. The button will work only with a left mouse click. The opening will be slower than a link because the script must do two HTTP requests to the server.",
+                "title": "Show a link that will open the page of the the parent album. The opening will be slower than usual because the script must do two HTTP requests to the server.",
                 "type": "checkbox",
                 "default": true
             },
@@ -265,8 +265,8 @@ sites misbehave.
     if (GM_config.get("ciShowOriginalLink")) {
         captionInfo.push("Original link");
     }
-    if (GM_config.get("ciShowAlbumButton")) {
-        captionInfo.push("Album button");
+    if (GM_config.get("ciShowAlbumLink")) {
+        captionInfo.push("Album link");
     }
     var colorBorder = GM_config.get("colorBorder");
     var colorByWhat = GM_config.get("colorByWhat");
@@ -290,17 +290,22 @@ sites misbehave.
      * 2- extract the parent album link
      * 3- open a new tab with the album link
      */
-    function loadAlbum() {
-        var xhr,    //XML http request
+    function loadAlbum(event) {
+        var anchors,//anchors to be searched
+            xhr,    //XML http request
             regex,  //regex tool
             found,  //regex result
             i,      //iterator over regex results
             anchor; //a element being analyzed
+        if (event.button === 2) {
+            //Do nothing for right mouse click
+            return true;
+        }
         xhr = new XMLHttpRequest();
-        xhr.open("GET", this.href, true);
+        xhr.open("GET", this.dataset.href, true);
         xhr.onload = function () {
 
-            var anchors = xhr.responseXML.querySelectorAll('a[href*=thumbnails]');
+            anchors = xhr.responseXML.querySelectorAll('a[href*=thumbnails]');
             clog("Album anchors found:" + anchors.length);
             found = false;
             for (i = 0; i < anchors.length && found === false; i++) {
@@ -314,12 +319,18 @@ sites misbehave.
             }
 
             if (found) {
-                /* This will open a new tab in background only if
-                 * "When I open a link in a new tab, switch to it immediately"
-                 * in firefox settings or "browser.tabs.loadInBackground" in
-                 * about:config is set to false. False is the default value.
-                 */
-                GM_openInTab(anchor.href);
+                if (event.button === 0) {
+                    //Left mouse click
+                    location.href = anchor.href;
+                } else if (event.button === 1) {
+                    /* Middle mouse click
+                     * This will open a new tab in background only if
+                     * "When I open a link in a new tab, switch to it immediately"
+                     * in firefox settings or "browser.tabs.loadInBackground" in
+                     * about:config is set to false. False is the default value.
+                     */
+                    GM_openInTab(anchor.href);
+                }
             } else {
                 clog("Album link not found");
             }
@@ -335,6 +346,7 @@ sites misbehave.
             j, //index to iterate captionInfo
             tableCell, //td element containing the anchor
             cellElements, //all the elements in tableCell
+            anchors, //all the anchors containing thumbnails
             anchor, //a element being analyzed
             thumbnail, //img element inside anchor
             caption, //span element below the thumbnail
@@ -345,7 +357,7 @@ sites misbehave.
             newColor; //color to use for thumbnail's border
 
         //find all the anchors around the the thumbnails and iterate
-        var anchors = document.querySelectorAll('a[href*=displayimage]');
+        anchors = document.querySelectorAll('a[href*=displayimage]');
         clog("Found " + anchors.length + " anchors");
         for (i = 0; i < anchors.length; i++) {
             anchor = anchors[i];
@@ -393,17 +405,23 @@ sites misbehave.
                     caption.appendChild(extraInfo);
                     continue;
                 }
-                if (captionInfo[j] === "Album button") {
-                    //Add a button to open the album into a new tab
-                    //Use a button instead of a link because the button will not
-                    //react o middle click.
-                    extraInfo = document.createElement('input');
-                    extraInfo.type = "button";
-                    extraInfo.value = "Open album";
-                    extraInfo.style = "border: 1px solid gray";
-                    extraInfo.href = anchor.href;
-                    extraInfo.onclick = loadAlbum;
-                    extraInfo.title = "Left click to open in new tab.\nMiddle click will not work.";
+                if (captionInfo[j] === "Album link") {
+                    /*
+                     * Add a link to open the album
+                     * Can't use a normal anchor because is impossible to avoid
+                     * opening a new tab with the anchor href if the user middle
+                     * clicks.
+                     * To handle correctly left and middle clicks with js the
+                     * href attribute is empty and the url is passed using
+                     * HTML5's data-*. To catch also middle clicks listen
+                     * to mouseup instead of click event.
+                     */
+                    extraInfo = document.createElement('a');
+                    extraInfo.innerHTML = "Open album";
+                    extraInfo.style = "cursor: pointer";
+                    extraInfo.dataset.href = anchor.href;
+                    extraInfo.addEventListener("mouseup", loadAlbum, false);
+                    extraInfo.title = "Open the thumbnail's album.";
                     caption.appendChild(document.createElement('br'));
                     caption.appendChild(extraInfo);
                     continue;
