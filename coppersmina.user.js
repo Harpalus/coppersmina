@@ -477,8 +477,10 @@ sites misbehave.
                 thumbnail.style.border = borderSize + 'px solid ' + newColor;
             }
 
-            //Remove the tooltip if required
-            if (removeTooltips) {
+            if (thumbnail.title === "") {
+                thumbnail.title = "Coppersmina:\nNo colored border or extra information in caption because in this gallery the required data is not available.";
+            } else if (removeTooltips) {
+                //Remove the tooltip if required
                 thumbnail.title = "";
             }
         }
