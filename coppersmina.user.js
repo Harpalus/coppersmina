@@ -86,7 +86,7 @@ sites misbehave.
                      {size: 1000, color: 'red'},
                      {size: 2000, color: 'magenta'}];
 
-    var debugMode = false;
+    var debugMode = true;
 
     function clog(msg) {
         if (debugMode) {
@@ -353,56 +353,59 @@ sites misbehave.
                 clog("Thumbnail not found");
                 continue;
             }
+
             //find the text field under the thumbnail
             caption = anchor.parentNode.querySelector("span");
-            //If the caption is not found allow the execution of the rest of the script
-            if (caption !==  null) {
-                //maybe clear the caption
-                if (clearOldCaption) {
-                    while (caption.firstChild) {
-                        caption.removeChild(caption.firstChild);
-                    }
-                }
+            if (caption ===  null) {
+                clog("Caption not found, adding a new one");
+                caption = document.createElement('span');
+                caption.className = "thumb_title";
+                anchor.parentNode.appendChild(caption);
+            }
 
-                //Add info to the caption
-                for (j = 0; j < captionInfo.length; j++) {
-                    if (captionInfo[j] === 'Original link') {
-                        //add the old link to the caption
-                        extraInfo = document.createElement('a');
-                        extraInfo.innerHTML = "Original link";
-                        extraInfo.href = anchor.href;
-                        caption.appendChild(document.createElement('br'));
-                        caption.appendChild(extraInfo);
-                        continue;
-                    }
-                    if (captionInfo[j] === "Album button") {
-                        //Add a button to open the album into a new tab
-                        //Use a button instead of a link because the button will not
-                        //react o middle click.
-                        extraInfo = document.createElement('input');
-                        extraInfo.type = "button";
-                        extraInfo.value = "Open album";
-                        extraInfo.style = "border: 1px solid gray";
-                        extraInfo.href = anchor.href;
-                        extraInfo.onclick = loadAlbum;
-                        extraInfo.title = "Left click to open in new tab.\nMiddle click will not work.";
-                        caption.appendChild(document.createElement('br'));
-                        caption.appendChild(extraInfo);
-                        continue;
-                    }
-                    regex = new RegExp(captionInfo[j] + '=(.*)');
-                    found = regex.exec(thumbnail.title);
-                    if (found !== null) {
-                        extraInfo = document.createElement('span');
-                        extraInfo.innerHTML = found[1];
-                        caption.appendChild(document.createElement('br'));
-                        caption.appendChild(extraInfo);
-                    } else {
-                        clog('Image info "' + captionInfo[j] + '" not found');
-                    }
+            //maybe clear the caption
+            if (clearOldCaption) {
+                while (caption.firstChild) {
+                    caption.removeChild(caption.firstChild);
                 }
-            } else {
-                clog("Caption not found");
+            }
+
+            //Add info to the caption
+            for (j = 0; j < captionInfo.length; j++) {
+                if (captionInfo[j] === 'Original link') {
+                    //add the old link to the caption
+                    extraInfo = document.createElement('a');
+                    extraInfo.innerHTML = "Original link";
+                    extraInfo.href = anchor.href;
+                    caption.appendChild(document.createElement('br'));
+                    caption.appendChild(extraInfo);
+                    continue;
+                }
+                if (captionInfo[j] === "Album button") {
+                    //Add a button to open the album into a new tab
+                    //Use a button instead of a link because the button will not
+                    //react o middle click.
+                    extraInfo = document.createElement('input');
+                    extraInfo.type = "button";
+                    extraInfo.value = "Open album";
+                    extraInfo.style = "border: 1px solid gray";
+                    extraInfo.href = anchor.href;
+                    extraInfo.onclick = loadAlbum;
+                    extraInfo.title = "Left click to open in new tab.\nMiddle click will not work.";
+                    caption.appendChild(document.createElement('br'));
+                    caption.appendChild(extraInfo);
+                    continue;
+                }
+                regex = new RegExp(captionInfo[j] + '=(.*)');
+                found = regex.exec(thumbnail.title);
+                if (found !== null) {
+                    extraInfo = document.createElement('span');
+                    extraInfo.innerHTML = found[1];
+                    caption.appendChild(document.createElement('br'));
+                    caption.appendChild(extraInfo);
+                } else {
+                    clog('Image info "' + captionInfo[j] + '" not found');
+                }
             }
 
             //replace the thumbnail link with a direct link to the HD image
@@ -436,8 +439,7 @@ sites misbehave.
             }
 
             //Remove the tooltip if required
-            //If caption was not found keep the tooltip to avoid losing the info
-            if (removeTooltips && caption !== null) {
+            if (removeTooltips) {
                 thumbnail.title = "";
             }
         }
