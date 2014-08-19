@@ -333,6 +333,8 @@ sites misbehave.
     function runCoppersmina() {
         var i, //index to iterate anchors
             j, //index to iterate captionInfo
+            tableCell, //td element containing the anchor
+            cellElements, //all the elements in tableCell
             anchor, //a element being analyzed
             thumbnail, //img element inside anchor
             caption, //span element below the thumbnail
@@ -354,19 +356,29 @@ sites misbehave.
                 continue;
             }
 
+            tableCell = anchor.parentNode;
             //find the text field under the thumbnail
-            caption = anchor.parentNode.querySelector("span");
+            caption = tableCell.querySelector("span.thumb_caption");
             if (caption ===  null) {
                 clog("Caption not found, adding a new one");
                 caption = document.createElement('span');
-                caption.className = "thumb_title";
-                anchor.parentNode.appendChild(caption);
+                caption.className = "thumb_caption";
+                tableCell.appendChild(caption);
             }
 
             //maybe clear the caption
             if (clearOldCaption) {
+                //Clear content of caption
                 while (caption.firstChild) {
                     caption.removeChild(caption.firstChild);
+                }
+                //Clear other captions sibilings of our caption
+                cellElements = tableCell.childNodes;
+                for (j = 0; j < cellElements.length; j++) {
+                    if (cellElements[j] !== caption && cellElements[j] !== anchor) {
+                        tableCell.removeChild(cellElements[j]);
+                        j--;
+                    }
                 }
             }
 
