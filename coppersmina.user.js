@@ -354,6 +354,7 @@ sites misbehave.
             found, //regex result
             extraInfo, //element to append into caption
             imageWeight, //quantity to use to choose thumbnail's border color
+            captionIsClear,  //requred to handle newlines in captions
             newColor; //color to use for thumbnail's border
 
         //find all the anchors around the the thumbnails and iterate
@@ -370,11 +371,13 @@ sites misbehave.
 
             tableCell = anchor.parentNode;
             //find the text field under the thumbnail
-            caption = tableCell.querySelector("span.thumb_caption");
+            //using the class thumb_title instead of thumb_caption usually
+            //gives a better integration with the sites styles
+            caption = tableCell.querySelector("span.thumb_title");
             if (caption ===  null) {
                 clog("Caption not found, adding a new one");
                 caption = document.createElement('span');
-                caption.className = "thumb_caption";
+                caption.className = "thumb_title";
                 tableCell.appendChild(caption);
             }
 
@@ -395,14 +398,20 @@ sites misbehave.
             }
 
             //Add info to the caption
+            captionIsClear = clearOldCaption;
             for (j = 0; j < captionInfo.length; j++) {
+
+                if (captionIsClear === false) {
+                    caption.appendChild(document.createElement('br'));
+                }
+
                 if (captionInfo[j] === 'Original link') {
                     //add the old link to the caption
                     extraInfo = document.createElement('a');
                     extraInfo.innerHTML = "Original link";
                     extraInfo.href = anchor.href;
-                    caption.appendChild(document.createElement('br'));
                     caption.appendChild(extraInfo);
+                    captionIsClear = false;
                     continue;
                 }
                 if (captionInfo[j] === "Album link") {
@@ -422,8 +431,8 @@ sites misbehave.
                     extraInfo.dataset.href = anchor.href;
                     extraInfo.addEventListener("mouseup", loadAlbum, false);
                     extraInfo.title = "Open the thumbnail's album.";
-                    caption.appendChild(document.createElement('br'));
                     caption.appendChild(extraInfo);
+                    captionIsClear = false;
                     continue;
                 }
                 regex = new RegExp(captionInfo[j] + '=(.*)');
@@ -431,8 +440,8 @@ sites misbehave.
                 if (found !== null) {
                     extraInfo = document.createElement('span');
                     extraInfo.innerHTML = found[1];
-                    caption.appendChild(document.createElement('br'));
                     caption.appendChild(extraInfo);
+                    captionIsClear = false;
                 } else {
                     clog('Image info "' + captionInfo[j] + '" not found');
                 }
