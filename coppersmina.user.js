@@ -354,7 +354,7 @@ sites misbehave.
             found, //regex result
             extraInfo, //element to append into caption
             imageWeight, //quantity to use to choose thumbnail's border color
-            captionIsClear,  //requred to handle newlines in captions
+            mustAddNewline,  //requred to handle newlines in captions
             newColor; //color to use for thumbnail's border
 
         //find all the anchors around the the thumbnails and iterate
@@ -398,10 +398,10 @@ sites misbehave.
             }
 
             //Add info to the caption
-            captionIsClear = clearOldCaption;
+            mustAddNewline = clearOldCaption === false;
             for (j = 0; j < captionInfo.length; j++) {
 
-                if (captionIsClear === false) {
+                if (mustAddNewline) {
                     caption.appendChild(document.createElement('br'));
                 }
 
@@ -411,7 +411,7 @@ sites misbehave.
                     extraInfo.innerHTML = "Original link";
                     extraInfo.href = anchor.href;
                     caption.appendChild(extraInfo);
-                    captionIsClear = false;
+                    mustAddNewline = true;
                     continue;
                 }
                 if (captionInfo[j] === "Album link") {
@@ -432,7 +432,7 @@ sites misbehave.
                     extraInfo.addEventListener("mouseup", loadAlbum, false);
                     extraInfo.title = "Open the thumbnail's album.";
                     caption.appendChild(extraInfo);
-                    captionIsClear = false;
+                    mustAddNewline = true;
                     continue;
                 }
                 regex = new RegExp(captionInfo[j] + '=(.*)');
@@ -441,9 +441,10 @@ sites misbehave.
                     extraInfo = document.createElement('span');
                     extraInfo.innerHTML = found[1];
                     caption.appendChild(extraInfo);
-                    captionIsClear = false;
+                    mustAddNewline = true;
                 } else {
                     clog('Image info "' + captionInfo[j] + '" not found');
+                    mustAddNewline = false;
                 }
             }
 
